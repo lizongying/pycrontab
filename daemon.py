@@ -9,6 +9,8 @@ import time
 import config
 from setting import *
 
+time_log = {}
+
 
 class Daemon(object):
     config = {}
@@ -45,6 +47,7 @@ class Daemon(object):
 
     def check_process(self):
         script = self.config['script'].strip()
+        name = self.config['name'].strip()
         process_num = int(self.config['process_num'])
         command = "ps ax|grep '%s'|grep -ivE '%s'|awk '{print $1}'" % (script, SCRIPT_IGNORE)
         res = ''
@@ -61,6 +64,7 @@ class Daemon(object):
             process_str = ' '.join(map(lambda x: str(x), random.sample(process_arr, abs(process_num_need))))
             command = 'kill -9 %s' % process_str
             subprocess.Popen(command, shell=True)
+            print('kill process beginning: %s, %s' % (name, process_str))
         self.config.update({
             'process_num_need': process_num_need,
             'pid': process_arr,
@@ -75,9 +79,23 @@ class Daemon(object):
         runtime = self.config['runtime'].strip()
         command = script
         if self.test_cron(runtime):
+            if name not in time_log:
+                time_log[name] = {
+                    'start_time': time.time(),
+                }
+            else:
+                last_time = time_log[name]['last_time']
+                now = time.time()
+                if now - last_time < SCRIPT_MIN:
+                    print('too fast: %s, %s' % (name, now - last_time))
+                    return
+            time_log[name].update({
+                'last_time': time.time(),
+            })
             for process in range(process_num_need):
                 subprocess.Popen(command, shell=True, cwd=directory,
                                  stdout=open(STDOUT_PATH % name, 'a'), stderr=open(STDERR_PATH % name, 'a'))
+                print('start process beginning: %s' % name)
                 time.sleep(SCRIPT_INTERVAL)
 
     @staticmethod
@@ -139,7 +157,7 @@ def get_config():
     reload(config)
     for item in iter(config.items):
         yield item
-        time.sleep(2)
+        time.sleep(CHECK_INTERVAL)
 
 
 if __name__ == '__main__':

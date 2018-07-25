@@ -1,1 +1,1 @@
-from config_example import *
+from example import *
