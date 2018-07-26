@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import datetime
+import logging
 import os
 import random
 import re
@@ -11,17 +12,30 @@ from setting import *
 
 time_log = {}
 
+logging.basicConfig(
+    filename=LOG_PATH,
+    level=LOG_LEVEL, format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger()
 
-class Daemon(object):
+
+class Crontab(object):
     config = {}
 
     def __init__(self, *args, **kwargs):
         self.config.update(kwargs)
+        name = self.config['name'].strip()
+        if not name:
+            print('no name')
+            logger.info('no name')
+            return
         if not self.check_config():
-            print('config error')
+            print('%s config error' % name)
+            logger.info('%s config error' % name)
             return
         if not self.check_process():
-            print('not need to start')
+            print('%s not need to start' % name)
+            logger.info('%s not need to start' % name)
             return
         self.check_log()
         self.start_process()
@@ -32,16 +46,20 @@ class Daemon(object):
             os.makedirs(LOG_DIR)
 
     def check_config(self):
+        name = self.config['name'].strip()
         script = self.config['script'].strip()
         directory = self.config['directory'].strip()
         if not script:
-            print('no script')
+            print('%s no script' % name)
+            logger.info('%s no script' % name)
             return False
         if re.search(r'.*(%s).*' % SCRIPT_IGNORE, script):
-            print('script error')
+            print('%s script error' % name)
+            logger.info('%s script error' % name)
             return False
         if not os.path.isdir(directory):
-            print('directory error')
+            print('%s directory error' % name)
+            logger.info('%s directory error' % name)
             return False
         return True
 
@@ -64,7 +82,8 @@ class Daemon(object):
             process_str = ' '.join(map(lambda x: str(x), random.sample(process_arr, abs(process_num_need))))
             command = 'kill -9 %s' % process_str
             subprocess.Popen(command, shell=True)
-            print('kill process beginning: %s, %s' % (name, process_str))
+            print('%s kill process: %s' % (name, process_str))
+            logger.info('%s kill process: %s' % (name, process_str))
         self.config.update({
             'process_num_need': process_num_need,
             'pid': process_arr,
@@ -87,7 +106,6 @@ class Daemon(object):
                 last_time = time_log[name]['last_time']
                 now = time.time()
                 if now - last_time < SCRIPT_MIN:
-                    print('too fast: %s, %s' % (name, now - last_time))
                     return
             time_log[name].update({
                 'last_time': time.time(),
@@ -95,7 +113,8 @@ class Daemon(object):
             for process in range(process_num_need):
                 subprocess.Popen(command, shell=True, cwd=directory,
                                  stdout=open(STDOUT_PATH % name, 'a'), stderr=open(STDERR_PATH % name, 'a'))
-                print('start process beginning: %s' % name)
+                print('%s start process' % name)
+                logger.info('%s start process' % name)
                 time.sleep(SCRIPT_INTERVAL)
 
     @staticmethod
@@ -162,5 +181,7 @@ def get_config():
 
 if __name__ == '__main__':
     while 1:
+        print('pycrontab is begging')
+        logger.info('pycrontab is begging')
         for i in get_config():
-            Daemon(**i)
+            Crontab(**i)
