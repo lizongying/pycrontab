@@ -124,37 +124,37 @@ class Crontab(object):
                 time.sleep(SCRIPT_INTERVAL)
 
     @staticmethod
-    def test_time(taget, test):
+    def test_time(target, test):
         time_res = False
         time_test = re.match(r'^\*$', test)
         if time_test:
             time_res = True
         time_test = re.match(r'^\d+$', test)
         if time_test:
-            if int(test) == taget:
+            if int(test) == target:
                 time_res = True
         time_test = re.match(r'^\*/(\d+)$', test)
         if time_test:
             ss = time_test.groups()
-            if 0 != int(ss[0]) and 0 == taget % int(ss[0]):
+            if 0 != int(ss[0]) and 0 == target % int(ss[0]):
                 time_res = True
         time_test = re.match(r'^(\d+)-(\d+)$', test)
         if time_test:
             ss = time_test.groups()
-            if int(ss[1]) > int(ss[0]) and int(ss[0]) <= taget <= int(
+            if int(ss[1]) > int(ss[0]) and int(ss[0]) <= target <= int(
                     ss[1]):
                 time_res = True
         time_test = re.match(r'^(\d+)-(\d+)/(\d+)$', test)
         if time_test:
             ss = time_test.groups()
-            if 0 != int(ss[2]) and 0 == taget % int(ss[2]) and int(ss[1]) > int(ss[0]) and int(ss[0]) <= taget <= int(
+            if 0 != int(ss[2]) and 0 == target % int(ss[2]) and int(ss[1]) > int(ss[0]) and int(ss[0]) <= target <= int(
                     ss[1]):
                 time_res = True
         time_test = re.match(r'^([\d+,]+\d+)$', test)
         if time_test:
             ss = time_test.groups()
             ss_arr = map(lambda x: int(x), ss[0].split(','))
-            if taget in ss_arr:
+            if target in ss_arr:
                 time_res = True
         return time_res
 
