@@ -125,38 +125,37 @@ class Crontab(object):
 
     @staticmethod
     def test_time(target, test):
-        time_res = False
         time_test = re.match(r'^\*$', test)
         if time_test:
-            time_res = True
+            return True
         time_test = re.match(r'^\d+$', test)
         if time_test:
             if int(test) == target:
-                time_res = True
+                return True
         time_test = re.match(r'^\*/(\d+)$', test)
         if time_test:
             ss = time_test.groups()
             if 0 != int(ss[0]) and 0 == target % int(ss[0]):
-                time_res = True
+                return True
         time_test = re.match(r'^(\d+)-(\d+)$', test)
         if time_test:
             ss = time_test.groups()
             if int(ss[1]) > int(ss[0]) and int(ss[0]) <= target <= int(
                     ss[1]):
-                time_res = True
+                return True
         time_test = re.match(r'^(\d+)-(\d+)/(\d+)$', test)
         if time_test:
             ss = time_test.groups()
             if 0 != int(ss[2]) and 0 == target % int(ss[2]) and int(ss[1]) > int(ss[0]) and int(ss[0]) <= target <= int(
                     ss[1]):
-                time_res = True
+                return True
         time_test = re.match(r'^([\d+,]+\d+)$', test)
         if time_test:
             ss = time_test.groups()
             ss_arr = map(lambda x: int(x), ss[0].split(','))
             if target in ss_arr:
-                time_res = True
-        return time_res
+                return True
+        return False
 
     def test_cron(self, cron):
         name = self.config['name'].strip()
@@ -177,8 +176,7 @@ class Crontab(object):
         logger.debug('%s test cron: %s %s %s %s %s' % (name, minute_test, hour_test, day_test, month_test, week_test))
         if minute_test and hour_test and day_test and month_test and week_test:
             return True
-        else:
-            return False
+        return False
 
 
 def get_config():
