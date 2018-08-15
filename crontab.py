@@ -27,24 +27,17 @@ class Crontab(object):
         self.config.update(kwargs)
         name = self.config['name'].strip()
         if not name:
-            print('%s no name' % self.now())
             logger.info('no name')
             return
         logger.debug('%s config: %s' % (name, json.dumps(self.config)))
         if not self.check_config():
-            print('%s %s config error' % (self.now(), name))
             logger.info('%s config error' % name)
             return
         if not self.check_process():
-            print('%s %s not need to start' % (self.now(), name))
             logger.info('%s not need to start' % name)
             return
         self.check_log()
         self.start_process()
-
-    @staticmethod
-    def now():
-        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
     def check_log():
@@ -56,15 +49,12 @@ class Crontab(object):
         script = self.config['script'].strip()
         directory = self.config['directory'].strip()
         if not script:
-            print('%s %s no script' % (self.now(), name))
             logger.info('%s no script' % name)
             return False
         if re.search(r'.*(%s).*' % SCRIPT_IGNORE, script):
-            print('%s %s script error' % (self.now(), name))
             logger.info('%s script error' % name)
             return False
         if not os.path.isdir(directory):
-            print('%s %s directory error' % (self.now(), name))
             logger.info('%s directory error' % name)
             return False
         return True
@@ -88,7 +78,6 @@ class Crontab(object):
             process_str = ' '.join(map(lambda x: str(x), random.sample(process_arr, abs(process_num_need))))
             command = 'kill -9 %s' % process_str
             subprocess.Popen(command, shell=True)
-            print('%s %s kill process: %s' % (self.now(), name, process_str))
             logger.info('%s kill process: %s' % (name, process_str))
         self.config.update({
             'process_num_need': process_num_need,
@@ -119,7 +108,6 @@ class Crontab(object):
             for process in range(process_num_need):
                 subprocess.Popen(command, shell=True, cwd=directory,
                                  stdout=open(STDOUT_PATH % name, 'a'), stderr=open(STDERR_PATH % name, 'a'))
-                print('%s %s start process' % (self.now(), name))
                 logger.info('%s start process' % name)
                 time.sleep(SCRIPT_INTERVAL)
 
@@ -158,7 +146,6 @@ class Crontab(object):
         return False
 
     def test_cron(self, cron):
-        name = self.config['name'].strip()
         now = datetime.datetime.now()
         week = now.weekday() + 1
         month = now.month
@@ -168,15 +155,21 @@ class Crontab(object):
         cron = re.sub(r'\s+', ' ', cron)
         time_arr = cron.split(' ')
         minute_test = self.test_time(minute, time_arr[0])
+        if not minute_test:
+            return False
         hour_test = self.test_time(hour, time_arr[1])
+        if not hour_test:
+            return False
         day_test = self.test_time(day, time_arr[2])
+        if not day_test:
+            return False
         month_test = self.test_time(month, time_arr[3])
+        if not month_test:
+            return False
         week_test = self.test_time(week, time_arr[4])
-        logger.debug('%s now: %s %s %s %s %s' % (name, minute, hour, day, month, week))
-        logger.debug('%s test cron: %s %s %s %s %s' % (name, minute_test, hour_test, day_test, month_test, week_test))
-        if minute_test and hour_test and day_test and month_test and week_test:
-            return True
-        return False
+        if not week_test:
+            return False
+        return True
 
 
 def get_config():
