@@ -1,1 +1,1 @@
-from example import *
+from setting.dev import *

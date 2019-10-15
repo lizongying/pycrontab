@@ -1,6 +1,12 @@
 *.pyc
+venv
 .idea
+.DS_Store
+build
+project.egg-info
+setup.py
+config/dev.py
 config/prod.py
-log
+log/*
+setting/dev.py
 setting/prod.py
-prod.sh

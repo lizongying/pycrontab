@@ -7,17 +7,16 @@ import random
 import re
 import subprocess
 import time
+from multiprocessing import Process
+from multiprocessing import Queue
 
-import config
 from setting import *
-
-time_log = {}
 
 logging.basicConfig(
     filename=LOG_PATH,
     level=LOG_LEVEL, format='%(asctime)s %(levelname)s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Crontab(object):
@@ -61,8 +60,9 @@ class Crontab(object):
 
     def check_process(self):
         name = self.config['name'].strip()
+        script = self.config['script'].strip()
         process_num = int(self.config['process_num'])
-        command = "ps ax|grep '%s'|grep -ivE '%s'|awk '{print $1}'" % (name, SCRIPT_IGNORE)
+        command = "ps ax|grep '%s'|grep -ivE '%s'|awk '{print $1}'" % (script, SCRIPT_IGNORE)
         res = ''
         process_arr = []
         try:
@@ -93,18 +93,6 @@ class Crontab(object):
         runtime = self.config['runtime'].strip()
         command = script
         if self.test_cron(runtime):
-            if name not in time_log:
-                time_log[name] = {
-                    'start_time': time.time(),
-                }
-            else:
-                last_time = time_log[name]['last_time']
-                now = time.time()
-                if now - last_time < SCRIPT_MIN:
-                    return
-            time_log[name].update({
-                'last_time': time.time(),
-            })
             for process in range(process_num_need):
                 subprocess.Popen(command, shell=True, cwd=directory,
                                  stdout=open(STDOUT_PATH % name, 'a'), stderr=open(STDERR_PATH % name, 'a'))
@@ -172,14 +160,50 @@ class Crontab(object):
         return True
 
 
-def get_config():
-    reload(config)
-    for item in iter(config.items):
-        yield item
-        time.sleep(CHECK_INTERVAL)
+def set_config(queue):
+    config_file = CONFIG_PATH
+    config_time_old = 0
+    while 1:
+        try:
+            config_time_new = os.stat(config_file).st_mtime
+        except FileNotFoundError:
+            continue
+        if config_time_new == config_time_old:
+            time.sleep(CHECK_INTERVAL)
+            continue
+        if config_time_new != config_time_old:
+            logger.info('config changed')
+            config_time_old = config_time_new
+            with open(config_file) as f:
+                config_item = json.loads(f.read())
+                if config_item:
+                    queue.put(config_item)
+
+
+def get_config(queue):
+    config_item = []
+    t = time.time()
+    while 1:
+        if not queue.empty():
+            config_item = queue.get_nowait()
+        for i in config_item:
+            if not i['enable']:
+                continue
+            Crontab(**i)
+        t += 60
+        sleep = t - time.time()
+        if sleep < 0:
+            sleep = 0
+        time.sleep(sleep)
+
+
+def run_config():
+    q = Queue()
+    ps = Process(target=set_config, args=(q,))
+    pt = Process(target=get_config, args=(q,))
+    ps.start()
+    pt.start()
 
 
 if __name__ == '__main__':
-    while 1:
-        for i in get_config():
-            Crontab(**i)
+    run_config()
