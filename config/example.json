@@ -2,17 +2,9 @@
   {
     "name": "example",
     "script": "python example.py",
-    "directory": "/Users/lizongying/IdeaProjects/pycrontab/script",
+    "directory": "pycrontab/script",
     "process_num": 1,
     "runtime": "*/2 * * * *",
-    "enable": true
-  },
-  {
-    "name": "example1",
-    "script": "python example1.py",
-    "directory": "/Users/lizongying/IdeaProjects/pycrontab/script",
-    "process_num": 1,
-    "runtime": "*/1 * * * *",
     "enable": true
   }
 ]

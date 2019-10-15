@@ -10,7 +10,7 @@ import time
 from multiprocessing import Process
 from multiprocessing import Queue
 
-from setting import *
+from settings import *
 
 logging.basicConfig(
     filename=LOG_PATH,
